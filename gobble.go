@@ -22,7 +22,7 @@ func init() {
 
 func main() {
 
-  path := "/tmp/gpio.sock"
+  path := "/tmp/gobble.sock"
   if syscall.Getuid() != 0 {
     log.Fatal("Root privilege required to handle GPIO")
   }
