@@ -3,6 +3,7 @@ package main
 import (
   "net"
   "encoding/json"
+  "sync"
   )
 
 type Client struct {
@@ -17,6 +18,7 @@ type Action struct {
 } 
 
 var clients []*Client
+var mutex sync.RWMutex
 
 func AddClient(conn net.Conn) (*Client) {
   c := &Client{
@@ -25,13 +27,17 @@ func AddClient(conn net.Conn) (*Client) {
     decoder: json.NewDecoder(conn),
   }
 
+  mutex.Lock()
   clients = append(clients, c)
+  mutex.Unlock()
 
   go c.Listen()
   return c
 }
 
 func RemoveClient(c *Client) {
+  mutex.Lock()
+  defer mutex.Unlock()
   c.Conn.Close()
   idx := -1
   for i := 0; i < len(clients); i++ {

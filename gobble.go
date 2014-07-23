@@ -112,8 +112,10 @@ func ListGPIO() {
 }
 
 func updateClients(msg []byte) {
+  mutex.Lock()
   for i := 0; i < len(clients); i++ {
     client := clients[i]
     client.Conn.Write(msg)
   }
+  mutex.Unlock()
 }
