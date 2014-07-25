@@ -12,6 +12,7 @@ import (
 
 var gpios []int = []int{3,5,8,10,11,12,13,15,16,18,19,21,22,23,24,26}
 var pins map[int]*Pin
+var update chan []*Client
 
 func init() {
   log.SetFlags(log.LstdFlags|log.Lshortfile)
@@ -47,6 +48,9 @@ func main() {
 
   err = os.Chmod(path, info.Mode()|0777)
   handleFatalErr(err)
+
+  update = make(chan []*Client)
+  go notifyClientsOnUpdate(update)
 
   for {
     conn, err := ln.Accept()
@@ -88,34 +92,36 @@ func initializePins(gpios []int) map[int]*Pin {
 
 func OpenGPIO(id int64) {
   pin := pins[int(id)]
+  log.Println("Opening Pin #", id)
   pin.Open()
-  ListGPIO()
+  update <- clients
 }
 
 func CloseGPIO(id int64) {
   pin := pins[int(id)]
+  log.Println("Closing Pin #", id)
   pin.Close()
-  ListGPIO()
+  update <- clients
 }
 
-func ListGPIO() {
+func notifyClientsOnUpdate(c chan []*Client) {
   var list []Pin
   for _, value := range pins {
     list = append(list, *value)
   }
 
-  data, err := json.Marshal(list)
-  if err != nil {
-    log.Fatal(err)
+  for {
+    clients := <-c
+    
+    data, err := json.Marshal(list)
+    if err != nil {
+      log.Fatal(err)
+    }
+    
+    for _, client := range clients {
+      log.Print("About to write data")
+      client.Conn.Write(data)
+      log.Print("Wrote data")
+    }
   }
-  updateClients(data)
-}
-
-func updateClients(msg []byte) {
-  mutex.Lock()
-  for i := 0; i < len(clients); i++ {
-    client := clients[i]
-    client.Conn.Write(msg)
-  }
-  mutex.Unlock()
 }

@@ -4,6 +4,7 @@ import (
   "net"
   "encoding/json"
   "sync"
+  "log"
   )
 
 type Client struct {
@@ -18,7 +19,7 @@ type Action struct {
 } 
 
 var clients []*Client
-var mutex sync.RWMutex
+var mutex sync.Mutex
 
 func AddClient(conn net.Conn) (*Client) {
   c := &Client{
@@ -36,8 +37,6 @@ func AddClient(conn net.Conn) (*Client) {
 }
 
 func RemoveClient(c *Client) {
-  mutex.Lock()
-  defer mutex.Unlock()
   c.Conn.Close()
   idx := -1
   for i := 0; i < len(clients); i++ {
@@ -78,9 +77,11 @@ func (c *Client) Listen() {
 }
 
 func (c *Client) execute(action Action) {
+  log.Println("Received action: ", action)
   switch action.Name {
     case "open": OpenGPIO(int64(action.Id))
     case "close": CloseGPIO(int64(action.Id))
-    default: ListGPIO()
+    default: update <- clients
+     
   }
 }
