@@ -67,7 +67,13 @@ func (c *Client) Listen() {
 		var data map[string]Action
 
 		if err := c.decoder.Decode(&data); err != nil {
-			break
+    	// break the loop if it's a socket error
+      _, netErr := err.(net.Error)
+      if netErr == true || err == io.EOF {
+        break
+      } else {
+        continue
+      }
 		}
 
 		action, ok := data["action"]
