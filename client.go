@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net"
+	"time"
 )
 
 type Client struct {
@@ -36,8 +37,10 @@ func AddClient(conn net.Conn) *Client {
 }
 
 func RemoveClient(c *Client) {
-	c.Conn.Close()
+	defer c.Conn.Close()
 	idx := -1
+	mutex.Lock()
+	defer mutex.Unlock()
 	for i := 0; i < len(clients); i++ {
 		obj := clients[i]
 		if obj == c {
@@ -55,7 +58,6 @@ func RemoveClient(c *Client) {
 	}
 
 	clients = clients[:len(clients)-1]
-
 }
 
 func (c *Client) Listen() {
@@ -70,20 +72,39 @@ func (c *Client) Listen() {
 
 		action, ok := data["action"]
 		if ok {
-			c.execute(action)
+			go c.execute(action)
 		}
 	}
+	log.Print("Deconnecting a Client")
 }
 
 func (c *Client) update() {
-	for {
-		<-c.Update
-		data, err := json.Marshal(pins)
-		if err != nil {
-			log.Fatal(err)
+	defer RemoveClient(c)
+	Loop:
+		for {
+			<-c.Update
+			ch := make(chan int, 1)
+			data, err := json.Marshal(pins)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			select {
+				case ch <- c.write(data):
+				case <- time.After(5 * time.Second):
+					log.Print("Couldn't write on client's socket")
+					break Loop
+				
+			}
 		}
-		c.Conn.Write(data)
+}
+
+func (c *Client) write(data []byte) int {
+	size, err := c.Conn.Write(data)
+	if err != nil {
+		log.Print(err)
 	}
+	return size
 }
 
 func (c *Client) execute(action Action) {
