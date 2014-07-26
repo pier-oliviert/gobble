@@ -37,7 +37,6 @@ func AddClient(conn net.Conn) *Client {
 }
 
 func RemoveClient(c *Client) {
-	defer c.Conn.Close()
 	idx := -1
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -58,6 +57,7 @@ func RemoveClient(c *Client) {
 	}
 
 	clients = clients[:len(clients)-1]
+	c.Conn.Close()
 }
 
 func (c *Client) Listen() {
@@ -94,7 +94,7 @@ func (c *Client) update() {
 				case <- time.After(5 * time.Second):
 					log.Print("Couldn't write on client's socket")
 					break Loop
-				
+
 			}
 		}
 }
