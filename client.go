@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"time"
+	"io"
 )
 
 type Client struct {
@@ -114,7 +115,6 @@ func (c *Client) write(data []byte) int {
 }
 
 func (c *Client) execute(action Action) {
-	log.Println("Received action: ", action)
 	mutex.Lock()
 
 	switch action.Name {

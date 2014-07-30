@@ -10,7 +10,7 @@ type Pin struct {
 	gpio rpio.Pin
 }
 
-var gpios []int = []int{3, 5, 8, 10, 11, 12, 13, 15, 16, 18, 19, 21, 22, 23, 24, 26}
+var gpios []int = []int{2, 3, 4, 17, 27, 22, 10, 9, 11, 14, 15, 18, 23, 24, 25, 8, 7}
 var pins []*Pin
 
 func NewPin(id int64) *Pin {
@@ -18,6 +18,7 @@ func NewPin(id int64) *Pin {
 
 	p.gpio = rpio.Pin(id)
 	p.gpio.Output()
+	p.Close()
 
 	return p
 }
@@ -42,11 +43,11 @@ func (p *Pin) Id() int8 {
 }
 
 func (p *Pin) Open() {
-	p.gpio.High()
+	p.gpio.Low()
 }
 
 func (p *Pin) Close() {
-	p.gpio.Low()
+	p.gpio.High()
 }
 
 func (p *Pin) State() int {
